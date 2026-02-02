@@ -2,6 +2,7 @@ import json
 from datetime import datetime
 import requests
 
+CONFIG_FILE = 'config.json'
 COMPS_FILE = 'comps.json'
 
 def get_upcoming_comps(country: str):
@@ -28,12 +29,25 @@ def get_known_comps():
             return json.load(f)
     except:
         return []
-    
-def find_new_comps(known_comps: list[dict], upcoming_comps: list[dict]):
-    known_ids = [comp['id'] for comp in known_comps]
-    upcoming_ids = [comp['id'] for comp in upcoming_comps]
-    new_ids = [id for id in upcoming_ids if id not in known_ids]
-    return [comp for comp in upcoming_comps if comp['id'] in new_ids]
+
+def get_updated_known_comps(known_comps: list[dict], upcoming_comps: list[dict]):
+    updated_known = []
+    for upcoming_comp in upcoming_comps:
+        known_comp = next((comp for comp in known_comps if comp['id'] == upcoming_comp['id']), None)
+        upcoming_comp['notifications'] = [] if known_comp is None else known_comp['notifications']
+        if known_comp is None:
+            upcoming_comp['notifications'].append('Competition announced')
+        else:
+            if known_comp['registration_open'] != upcoming_comp['registration_open']:
+                upcoming_comp['notifications'].append('Registration date changed')
+            if known_comp['start_date'] != upcoming_comp['start_date'] or known_comp['end_date'] != upcoming_comp['end_date']:
+                upcoming_comp['notifications'].append('Competition date changed')
+            
+        updated_known.append(upcoming_comp)
+
+    new_known_ids = [comp['id'] for comp in updated_known]
+    updated_known += [comp for comp in known_comps if comp['id'] not in new_known_ids]
+    return updated_known
 
 def write_comps(comps: list[dict]):
     with open(COMPS_FILE, 'w') as f:
@@ -44,34 +58,35 @@ def write_comps(comps: list[dict]):
                 'registration_open': comp['registration_open'],
                 'start_date': comp['start_date'],
                 'end_date': comp['end_date'],
-                'notification_sent': comp.get('notification_sent', False)
+                'notifications': comp.get('notifications')
             } for comp in comps], f, indent=2)
 
 def send_notifications(comps: list[dict], topic: str):
     for comp in comps:
-        if comp.get('notification_sent'):
+        notifications = comp.get('notifications')
+        if notifications is None or len(notifications) == 0:
             continue
-        response = requests.post(f'https://ntfy.sh/{topic}',
-                      data=comp['name'],
-                      headers={
-                          'Title': f'Competition announced',
-                          'Click': f'https://www.worldcubeassociation.org/competitions/{comp['id']}',
-                          'Icon': 'https://upload.wikimedia.org/wikipedia/commons/e/ec/World_Cube_Association_Logo.png'
-                      })
-        if response.ok:
-            comp['notification_sent'] = True
-            print(f'Sent notification - {comp['name']}')
+
+        for notification_reason in notifications:
+            response = requests.post(f'https://ntfy.sh/{topic}',
+                        data=comp['name'],
+                        headers={
+                            'Title': notification_reason,
+                            'Click': f'https://www.worldcubeassociation.org/competitions/{comp['id']}',
+                            'Icon': 'https://upload.wikimedia.org/wikipedia/commons/e/ec/World_Cube_Association_Logo.png'
+                        })
+            if response.ok:
+                comp['notifications'] = [n for n in comp['notifications'] if n != notification_reason]
+                print(f'Sent notification - {comp['name']}, {notification_reason}')
     
 def main():
-    with open('config.json', 'r') as f:
+    with open(CONFIG_FILE, 'r') as f:
         config = json.load(f)
 
     upcoming_comps = get_upcoming_comps(config['country'])
     known_comps = get_known_comps()
-    new_comps = find_new_comps(known_comps, upcoming_comps)
-    print(f"Found {len(new_comps)} new comps")
-    all_comps = known_comps + new_comps
-    send_notifications(all_comps, config['ntfy_topic'])
-    write_comps(all_comps)
+    known_comps = get_updated_known_comps(known_comps, upcoming_comps)
+    send_notifications(known_comps, config['ntfy_topic'])
+    write_comps(known_comps)
 
 main()
