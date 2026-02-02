@@ -55,7 +55,8 @@ def send_notifications(comps: list[dict], topic: str):
                       data=comp['name'],
                       headers={
                           'Title': f'Competition announced',
-                          'Click': f'https://www.worldcubeassociation.org/competitions/{comp['id']}'
+                          'Click': f'https://www.worldcubeassociation.org/competitions/{comp['id']}',
+                          'Icon': 'https://upload.wikimedia.org/wikipedia/commons/e/ec/World_Cube_Association_Logo.png'
                       })
         if response.ok:
             comp['notification_sent'] = True
