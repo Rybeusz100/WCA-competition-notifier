@@ -4,7 +4,8 @@ A Python-based automation script that monitors the World Cube Association (WCA) 
 ## Setup
 
 ### Prerequisites
-- Python 3
+- Python 3.12 or newer
+- requests module
 
 ### Configuration
 Create a config.json file in the root directory:
