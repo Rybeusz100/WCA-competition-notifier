@@ -31,7 +31,9 @@ def get_known_comps():
         return []
 
 def get_updated_known_comps(known_comps: list[dict], upcoming_comps: list[dict]):
-    updated_known = []
+    upcoming_ids = [comp['id'] for comp in upcoming_comps]
+    updated_known = [comp for comp in known_comps if comp['id'] not in upcoming_ids]
+
     for upcoming_comp in upcoming_comps:
         known_comp = next((comp for comp in known_comps if comp['id'] == upcoming_comp['id']), None)
         upcoming_comp['notifications'] = [] if known_comp is None else known_comp['notifications']
@@ -45,8 +47,6 @@ def get_updated_known_comps(known_comps: list[dict], upcoming_comps: list[dict])
             
         updated_known.append(upcoming_comp)
 
-    new_known_ids = [comp['id'] for comp in updated_known]
-    updated_known += [comp for comp in known_comps if comp['id'] not in new_known_ids]
     return updated_known
 
 def write_comps(comps: list[dict]):
