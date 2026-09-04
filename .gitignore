@@ -1,2 +1,5 @@
 config.json
 comps.json
+notifications.json
+
+__pycache__
