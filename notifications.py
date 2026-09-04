@@ -12,7 +12,6 @@ def send_notifications(comps: list[dict], topic: str):
                         headers={
                             'Title': notification_reason,
                             'Click': f'https://www.worldcubeassociation.org/competitions/{comp['id']}',
-                            'Icon': 'https://upload.wikimedia.org/wikipedia/commons/e/ec/World_Cube_Association_Logo.png'
                         })
             if response.ok:
                 comp['notifications'] = [n for n in comp['notifications'] if n != notification_reason]
