@@ -1,6 +1,7 @@
 from datetime import datetime
 import requests
 import json
+from notifications import create_notification
 
 COMPS_FILE = 'comps.json'
 
@@ -22,7 +23,7 @@ def get_upcoming_comps(country: str):
         print(f"Error: {UPCOMING_COMPS_URL} responded with {response.status_code}")
         exit(1)
 
-def get_known_comps():
+def read_known_comps():
     try:
         with open(COMPS_FILE, 'r') as f:
             return json.load(f)
@@ -49,12 +50,12 @@ def get_updated_known_comps(known_comps: list[dict], upcoming_comps: list[dict])
         known_comp = next((comp for comp in known_comps if comp['id'] == upcoming_comp['id']), None)
         upcoming_comp['notifications'] = [] if known_comp is None else known_comp['notifications']
         if known_comp is None:
-            upcoming_comp['notifications'].append('Competition announced')
+            upcoming_comp['notifications'].append(create_notification('Competition announced'))
         else:
-            if known_comp['registration_open'] != upcoming_comp['registration_open']:
-                upcoming_comp['notifications'].append('Registration date changed')
-            if known_comp['start_date'] != upcoming_comp['start_date'] or known_comp['end_date'] != upcoming_comp['end_date']:
-                upcoming_comp['notifications'].append('Competition date changed')
+            if (old_reg_open := known_comp['registration_open']) != (new_reg_open := upcoming_comp['registration_open']):
+                upcoming_comp['notifications'].append(create_notification(f'Registration changed from {old_reg_open} to {new_reg_open}'))
+            if (old_start := known_comp['start_date']) != (new_start := upcoming_comp['start_date']) or (old_end := known_comp['end_date']) != (new_end := upcoming_comp['end_date']):
+                upcoming_comp['notifications'].append(create_notification(f'Date changed from {old_start} - {old_end} to {new_start} - {new_end}'))
             
         updated_known.append(upcoming_comp)
 
