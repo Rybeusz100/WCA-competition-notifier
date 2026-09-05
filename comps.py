@@ -52,9 +52,12 @@ def get_updated_known_comps(known_comps: list[dict], upcoming_comps: list[dict])
         if known_comp is None:
             upcoming_comp['notifications'].append(create_notification('Competition announced'))
         else:
-            if (old_reg_open := known_comp['registration_open']) != (new_reg_open := upcoming_comp['registration_open']):
-                upcoming_comp['notifications'].append(create_notification(f'Registration changed from {old_reg_open} to {new_reg_open}'))
-            if (old_start := known_comp['start_date']) != (new_start := upcoming_comp['start_date']) or (old_end := known_comp['end_date']) != (new_end := upcoming_comp['end_date']):
+            old_reg, old_start, old_end = known_comp['registration_open'], known_comp['start_date'], known_comp['end_date']
+            new_reg, new_start, new_end = upcoming_comp['registration_open'], upcoming_comp['start_date'], upcoming_comp['end_date']
+
+            if old_reg != new_reg:
+                upcoming_comp['notifications'].append(create_notification(f'Registration changed from {old_reg} to {new_reg}'))
+            if (old_start, old_end) != (new_start, new_end):
                 upcoming_comp['notifications'].append(create_notification(f'Date changed from {old_start} - {old_end} to {new_start} - {new_end}'))
             
         updated_known.append(upcoming_comp)
